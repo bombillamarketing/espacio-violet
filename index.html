@@ -207,9 +207,9 @@ main{max-width:1240px;margin:0 auto;padding:12px 22px 80px}
 .totales .n{color:var(--suave);font-size:13.5px}
 .totales .t{font-size:22px;font-weight:600;color:var(--ciruela)}
 .campos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.campos label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--suave);letter-spacing:.04em}
+.campos label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--suave);letter-spacing:.04em;min-width:0}
 .campos .ancho{grid-column:1/-1}
-.campos input,.campos select,.campos textarea{border:1px solid var(--linea);background:var(--crema);border-radius:12px;padding:10px 12px;font-size:14px;resize:none;transition:border-color .4s,background .4s}
+.campos input,.campos select,.campos textarea{width:100%;min-width:0;border:1px solid var(--linea);background:var(--crema);border-radius:12px;padding:10px 12px;font-size:14px;resize:none;transition:border-color .4s,background .4s}
 .campos input:focus,.campos select:focus,.campos textarea:focus{outline:none;border-color:var(--malva);background:#fff}
 .campos input.error{border-color:#C98A95;background:#FBF0F1}
 .btn-whatsapp{width:100%;padding:15px 20px;font-size:15px}
@@ -217,7 +217,7 @@ main{max-width:1240px;margin:0 auto;padding:12px 22px 80px}
 .nota-pie{font-size:12px;color:var(--suave);text-align:center;margin:0}
 
 /* ---------- aviso flotante ---------- */
-.toast{position:fixed;left:50%;bottom:26px;z-index:90;translate:-50% 0;background:var(--ciruela);color:var(--crema);padding:12px 20px 12px 14px;border-radius:999px;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 20px 40px -18px rgba(58,35,55,.8);opacity:0;transform:translateY(18px);pointer-events:none;transition:opacity .6s var(--ease),transform .6s var(--ease)}
+.toast{position:fixed;left:50%;bottom:26px;z-index:90;translate:-50% 0;width:max-content;max-width:calc(100vw - 32px);background:var(--ciruela);color:var(--crema);padding:12px 20px 12px 14px;border-radius:999px;display:flex;align-items:center;gap:10px;font-size:14px;box-shadow:0 20px 40px -18px rgba(58,35,55,.8);opacity:0;transform:translateY(18px);pointer-events:none;transition:opacity .6s var(--ease),transform .6s var(--ease)}
 .toast.ver{opacity:1;transform:none}
 .toast img{width:22px;height:22px}
 
