@@ -136,8 +136,24 @@ main{max-width:1240px;margin:0 auto;padding:12px 22px 80px}
 .velo.abierto{opacity:1;pointer-events:auto}
 .ventana{visibility:hidden;position:fixed;z-index:60;left:50%;top:50%;width:min(980px,94vw);max-height:92vh;overflow:auto;background:var(--crema);border-radius:28px;box-shadow:0 40px 90px -30px rgba(58,35,55,.55);display:grid;grid-template-columns:1fr 1fr;opacity:0;pointer-events:none;transform:translate(-50%,-46%) scale(.98);transition:opacity .6s var(--ease),transform .7s var(--ease),visibility 0s linear .7s}
 .ventana.abierta{visibility:visible;opacity:1;pointer-events:auto;transform:translate(-50%,-50%);transition:opacity .6s var(--ease),transform .7s var(--ease),visibility 0s}
-.ventana .foto-g{position:relative;background:var(--lavanda);min-height:100%}
-.ventana .foto-g img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/5}
+.ventana .foto-g{position:relative;background:var(--lavanda);min-height:100%;overflow:hidden;touch-action:pan-y}
+.ventana .foto-g #vFoto{width:100%;height:100%;object-fit:cover;aspect-ratio:4/5;transition:opacity .45s var(--ease)}
+.ventana .foto-g #vFoto.cambiando{opacity:0}
+.flecha{position:absolute;top:50%;translate:0 -50%;z-index:2;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.88);color:var(--ciruela);display:grid;place-items:center;opacity:0;transition:opacity .45s var(--ease),background .3s;box-shadow:0 8px 20px -12px rgba(58,35,55,.6)}
+.flecha svg{width:18px;height:18px}
+.flecha.ant{left:14px}.flecha.sig{right:14px}
+.foto-g:hover .flecha{opacity:1}
+.flecha:hover{background:#fff}
+.minis{position:absolute;left:0;right:0;bottom:12px;z-index:2;display:flex;gap:8px;justify-content:center;padding:4px 12px;overflow-x:auto;scrollbar-width:none}
+.minis::-webkit-scrollbar{display:none}
+.mini{flex:none;width:46px;height:58px;padding:0;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.75);background:var(--lavanda);opacity:.72;transition:opacity .4s,transform .4s var(--ease),border-color .4s}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini:hover{opacity:1}
+.mini[aria-current="true"]{opacity:1;border-color:var(--ciruela);transform:translateY(-2px)}
+.contador-foto{position:absolute;top:14px;left:14px;z-index:2;background:rgba(255,255,255,.88);color:var(--ciruela);font-size:12px;font-weight:600;letter-spacing:.06em;padding:5px 10px;border-radius:999px}
+@media (hover:none){.flecha{display:none}}
+.tarjeta .foto img.alt{position:absolute;inset:0;opacity:0}
+@media (hover:hover){.tarjeta:hover .foto img.alt.cargada{opacity:1}}
 .ventana .cuerpo{padding:34px 34px 30px;display:flex;flex-direction:column;gap:16px;position:relative}
 .cerrar{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:1px solid var(--linea);background:rgba(255,255,255,.9);display:grid;place-items:center;color:var(--ciruela);transition:background .4s,transform .5s var(--ease);z-index:3}
 .cerrar:hover{background:var(--lavanda);transform:rotate(90deg)}
@@ -225,7 +241,8 @@ main{max-width:1240px;margin:0 auto;padding:12px 22px 80px}
   .portada .arte{width:min(240px,60%);order:-1}
   .ventana{grid-template-columns:1fr;width:100vw;max-height:94vh;top:auto;bottom:0;left:0;border-radius:26px 26px 0 0;transform:translateY(40px)}
   .ventana.abierta{transform:none}
-  .ventana .foto-g img{aspect-ratio:4/4.2;object-position:50% 22%}
+  .ventana .foto-g #vFoto{aspect-ratio:4/4.2;object-position:50% 22%}
+  .mini{width:40px;height:50px}
   .ventana .cuerpo{padding:24px 20px 26px}
   .ventana h2{font-size:25px}
   .pie .in{grid-template-columns:1fr;text-align:center}
@@ -343,7 +360,13 @@ main{max-width:1240px;margin:0 auto;padding:12px 22px 80px}
 <div class="velo" id="velo"></div>
 
 <section class="ventana" id="ventana" role="dialog" aria-modal="true" aria-labelledby="vNombre" aria-hidden="true">
-  <div class="foto-g"><img id="vFoto" alt=""></div>
+  <div class="foto-g" id="galeria">
+    <img id="vFoto" alt="">
+    <span class="contador-foto" id="vContador" hidden></span>
+    <button class="flecha ant" id="fotoAnt" aria-label="Foto anterior" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="flecha sig" id="fotoSig" aria-label="Foto siguiente" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="minis" id="vMinis"></div>
+  </div>
   <div class="cuerpo">
     <button class="cerrar" data-cerrar aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <div class="cat" id="vCat" style="font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--malva);font-weight:600"></div>
@@ -488,31 +511,33 @@ function leerProductos(filas){
   const ix = {
     id: col(h => h === "id"), disp: col(h => h.startsWith("disponible")), nombre: col(h => h === "producto" || h.startsWith("producto")),
     cat: col(h => h.startsWith("categor")), desc: col(h => h.startsWith("descrip")), precio: col(h => h === "precio"),
-    antes: col(h => h.includes("antes")), etq: col(h => h.startsWith("etiqueta")), foto: col(h => h.startsWith("foto")), orden: col(h => h.startsWith("orden"))
+    antes: col(h => h.includes("antes")), etq: col(h => h.startsWith("etiqueta")), orden: col(h => h.startsWith("orden"))
   };
+  const colsFoto = cab.map((h, i) => h.startsWith("foto") ? i : -1).filter(i => i > -1);
   return filas.slice(1).map((f, i) => {
     const v = k => ix[k] > -1 ? String(f[ix[k]] ?? "").trim() : "";
-    const foto = v("foto");
+    const fotos = colsFoto.map(c => String(f[c] ?? "").trim()).filter(Boolean).map(e => ({ enlace: e, drive: idDrive(e) }));
     return {
       id: v("id"), disponible: verdadero(v("disp")), producto: v("nombre"), categoria: v("cat"), descripcion: v("desc"),
       precio: numero(v("precio")), antes: numero(v("antes")) || null, etiqueta: v("etq") || null,
-      fotoEnlace: foto, drive: idDrive(foto), orden: numero(v("orden")) || 999 + i
+      fotos, orden: numero(v("orden")) || 999 + i
     };
   }).filter(p => p.id && p.producto);
 }
 function leerInventario(filas){
   const cab = filas[0];
   const n = cab.map(sinTilde);
-  const iId = n.indexOf("id"), iColor = n.findIndex(h => h.startsWith("color"));
+  const iId = n.indexOf("id"), iColor = n.findIndex(h => h.startsWith("color")), iFotos = n.findIndex(h => h.startsWith("foto"));
   const tallas = cab.map((h, i) => ({ h: String(h).trim(), i }))
-    .filter(x => x.h && x.i !== iId && x.i !== iColor && !["producto","total"].includes(sinTilde(x.h)));
+    .filter(x => x.h && x.i !== iId && x.i !== iColor && !["producto","total"].includes(sinTilde(x.h)) && !sinTilde(x.h).startsWith("foto"));
   const inv = {};
   for (const f of filas.slice(1)){
     const id = String(f[iId] ?? "").trim(), color = String(f[iColor] ?? "").trim();
     if (!id || !color) continue;
     const stock = {};
     for (const t of tallas){ const u = Math.max(0, Math.floor(numero(f[t.i]) || 0)); if (u > 0) stock[t.h] = u; }
-    (inv[id] ||= { tallas: tallas.map(t => t.h), colores: [] }).colores.push({ nombre: color, stock });
+    const nums = iFotos > -1 ? (String(f[iFotos] ?? "").match(/\d+/g) || []).map(Number).filter(x => x > 0) : [];
+    (inv[id] ||= { tallas: tallas.map(t => t.h), colores: [] }).colores.push({ nombre: color, stock, fotos: nums });
   }
   return inv;
 }
@@ -532,11 +557,11 @@ function leerAjustes(filas){
   return a;
 }
 function usarRespaldo(){
-  E.productos = respaldo.productos.map(p => ({ ...p, fotoEnlace: p.foto }));
+  E.productos = respaldo.productos.map(p => ({ ...p, fotos: [{ enlace: p.foto, drive: p.drive }] }));
   const inv = {};
   for (const [id, color, stock] of respaldo.inventario){
     const s = {}; for (const [k, u] of Object.entries(stock)) if (u > 0) s[k] = u;
-    (inv[id] ||= { tallas: respaldo.tallas, colores: [] }).colores.push({ nombre: color, stock: s });
+    (inv[id] ||= { tallas: respaldo.tallas, colores: [] }).colores.push({ nombre: color, stock: s, fotos: [] });
   }
   E.inventario = inv; E.ajustes = { ...respaldo.ajustes }; E.fuente = "respaldo";
 }
@@ -581,16 +606,27 @@ function enCarrito(id, color, talla){
 const moneda = () => E.ajustes.moneda || CONFIG.moneda;
 const precio = n => isFinite(n) ? `${moneda()}${Number.isInteger(n) ? n : n.toFixed(2)}` : "";
 const placeholder = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="#EDE4F3"/><text x="200" y="262" text-anchor="middle" font-family="Georgia" font-style="italic" font-size="28" fill="#A77DB5">Violet</text></svg>');
-function fuentesFoto(p, ancho = 900){
-  const lista = [];
-  if (p.drive) lista.push(`https://lh3.googleusercontent.com/d/${p.drive}=w${ancho}`, `https://drive.google.com/thumbnail?id=${p.drive}&sz=w${ancho}`);
-  else if (p.fotoEnlace && !/drive\.google/.test(p.fotoEnlace)) lista.push(p.fotoEnlace);
-  if (fotosLocales[p.id]) lista.push(fotosLocales[p.id]);
+function fuentesFoto(p, ancho = 900, n = 0){
+  const lista = [], f = (p.fotos || [])[n];
+  if (f && f.drive) lista.push(`https://lh3.googleusercontent.com/d/${f.drive}=w${ancho}`, `https://drive.google.com/thumbnail?id=${f.drive}&sz=w${ancho}`);
+  if (f && f.enlace && !/drive\.google/.test(f.enlace)) lista.push(f.enlace);
+  if (n === 0 && fotosLocales[p.id]) lista.push(fotosLocales[p.id]);
   lista.push(placeholder);
   return [...new Set(lista)];
 }
-function ponerFoto(img, p, ancho){
-  const lista = fuentesFoto(p, ancho); let i = 0;
+/* fotos que corresponden a cada color: columna "Fotos de este color" o, si está vacía, en orden (2 por color) */
+function fotosDeColor(p, color){
+  const inv = E.inventario[p.id], total = (p.fotos || []).length;
+  if (!inv || !total || !color) return [];
+  const c = inv.colores.find(x => x.nombre === color); if (!c) return [];
+  if (inv.colores.some(x => x.fotos && x.fotos.length)) return (c.fotos || []).map(x => x - 1).filter(x => x < total);
+  const porColor = Math.floor(total / inv.colores.length);
+  if (porColor < 1) return [];
+  const k = inv.colores.indexOf(c);
+  return Array.from({ length: porColor }, (_, j) => k * porColor + j);
+}
+function ponerFoto(img, p, ancho, n = 0){
+  const lista = fuentesFoto(p, ancho, n); let i = 0;
   img.onerror = () => { i++; if (i < lista.length) img.src = lista[i]; };
   img.onload = () => img.classList.add("cargada");
   img.src = lista[0];
@@ -632,7 +668,7 @@ function pintarGrilla(sinAnimacion){
     const cinta = p.etiqueta && !agotado ? `<span class="cinta ${claseCinta(p.etiqueta)}">${esc(p.etiqueta)}</span>` : "";
     const puntos = v.colores.slice(0, 6).map(c => `<span class="punto" style="--c:${colorDe(c.nombre)}" title="${esc(c.nombre)}"></span>`).join("");
     return `<article class="tarjeta${agotado ? " agotado" : ""}" data-id="${esc(p.id)}" style="transition-delay:${(i % 4) * 90}ms">
-      <button class="foto" data-abrir="${esc(p.id)}" aria-label="Ver ${esc(p.producto)}">${cinta}${agotado ? '<span class="sello-agotado">Agotado</span>' : ""}<img alt="${esc(p.producto)}" loading="lazy"></button>
+      <button class="foto" data-abrir="${esc(p.id)}" aria-label="Ver ${esc(p.producto)}">${cinta}${agotado ? '<span class="sello-agotado">Agotado</span>' : ""}<img alt="${esc(p.producto)}" loading="lazy">${(p.fotos || []).length > 1 ? '<img class="alt" alt="" loading="lazy">' : ""}</button>
       <div class="info">
         <span class="cat">${esc(p.categoria)}</span>
         <h3>${esc(p.producto)}</h3>
@@ -642,7 +678,11 @@ function pintarGrilla(sinAnimacion){
       </div>
     </article>`;
   }).join("");
-  g.querySelectorAll(".tarjeta").forEach(t => ponerFoto(t.querySelector("img"), E.productos.find(p => p.id === t.dataset.id), 700));
+  g.querySelectorAll(".tarjeta").forEach(t => {
+    const p = E.productos.find(x => x.id === t.dataset.id);
+    ponerFoto(t.querySelector("img"), p, 700);
+    const alt = t.querySelector("img.alt"); if (alt) ponerFoto(alt, p, 700, 1);
+  });
   if (observador) observador.disconnect();
   if (sinAnimacion || reducido || !("IntersectionObserver" in window)){ g.querySelectorAll(".tarjeta").forEach(t => { t.style.transitionDelay = "0ms"; t.classList.add("visible"); }); return; }
   observador = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add("visible"); observador.unobserve(e.target); setTimeout(() => e.target.style.transitionDelay = "0ms", 1200); } }), { rootMargin: "0px 0px -6% 0px" });
@@ -650,14 +690,34 @@ function pintarGrilla(sinAnimacion){
 }
 
 /* ---------- ventana de producto ---------- */
-let ultimoFoco = null;
+let ultimoFoco = null, fotoActual = 0;
+function pintarGaleria(n = 0, inmediata){
+  const p = E.abierto; if (!p) return;
+  const total = Math.max(1, (p.fotos || []).length);
+  fotoActual = ((n % total) + total) % total;
+  const img = $("#vFoto");
+  if (inmediata || reducido){ img.classList.remove("cambiando"); ponerFoto(img, p, 1100, fotoActual); }
+  else { img.classList.add("cambiando"); setTimeout(() => { ponerFoto(img, p, 1100, fotoActual); img.onload = () => { img.classList.add("cargada"); img.classList.remove("cambiando"); }; if (img.complete && img.naturalWidth) img.classList.remove("cambiando"); }, 220); }
+  const varias = total > 1;
+  $("#fotoAnt").hidden = $("#fotoSig").hidden = $("#vContador").hidden = !varias;
+  $("#vContador").textContent = `${fotoActual + 1} / ${total}`;
+  const minis = $("#vMinis");
+  if (!varias){ minis.innerHTML = ""; return; }
+  if (minis.childElementCount !== total || minis.dataset.id !== p.id){
+    minis.dataset.id = p.id;
+    minis.innerHTML = p.fotos.map((_, i) => `<button class="mini" data-foto="${i}" aria-label="Ver foto ${i + 1}"><img alt="" loading="lazy"></button>`).join("");
+    minis.querySelectorAll(".mini img").forEach((im, i) => ponerFoto(im, p, 160, i));
+  }
+  minis.querySelectorAll(".mini").forEach((b, i) => b.setAttribute("aria-current", i === fotoActual ? "true" : "false"));
+  const activa = minis.children[fotoActual]; if (activa) activa.scrollIntoView({ block: "nearest", inline: "center", behavior: reducido ? "auto" : "smooth" });
+}
 function abrirProducto(id){
   const p = E.productos.find(x => x.id === id); if (!p) return;
   const v = variantes(p); if (!v.total) return;
   E.abierto = p;
   E.sel = { color: v.colores.length === 1 ? v.colores[0].nombre : null, talla: v.tallas.length === 1 ? v.tallas[0] : null, cant: 1 };
   if (E.sel.color && !E.sel.talla){ const ts = v.tallas.filter(x => stock(p.id, E.sel.color, x) > 0); if (ts.length === 1) E.sel.talla = ts[0]; }
-  ponerFoto($("#vFoto"), p, 1100); $("#vFoto").alt = p.producto;
+  $("#vFoto").alt = p.producto; pintarGaleria(0, true);
   $("#vCat").textContent = p.categoria;
   $("#vNombre").textContent = p.producto;
   $("#vPrecio").innerHTML = precio(p.precio) + (p.antes && p.antes > p.precio ? ` <s>${precio(p.antes)}</s>` : "");
@@ -722,7 +782,7 @@ function agregar(){
   const hay = stock(p.id, s.color, s.talla);
   const l = E.carrito.find(x => x.id === p.id && x.color === s.color && x.talla === s.talla);
   if (l) l.cant = Math.min(hay, l.cant + s.cant);
-  else E.carrito.push({ id: p.id, producto: p.producto, precio: p.precio, color: s.color, talla: s.talla, cant: Math.min(hay, s.cant) });
+  else E.carrito.push({ id: p.id, producto: p.producto, precio: p.precio, color: s.color, talla: s.talla, cant: Math.min(hay, s.cant), foto: (fotosDeColor(p, s.color)[0] ?? 0) });
   guardar(); pintarCarrito(true);
   aviso(`${p.producto} · ${s.color} · ${s.talla} agregado a tu pedido`);
   cerrarProducto();
@@ -749,7 +809,7 @@ function pintarCarrito(latir){
   }).join("");
   lista.querySelectorAll(".item").forEach(el => {
     const l = E.carrito[+el.dataset.i]; const p = E.productos.find(x => x.id === l.id);
-    if (p) ponerFoto(el.querySelector("img"), p, 300);
+    if (p) ponerFoto(el.querySelector("img"), p, 300, (l.foto || 0) < (p.fotos || []).length ? (l.foto || 0) : 0);
   });
 }
 function abrirCarrito(){
@@ -814,8 +874,12 @@ document.addEventListener("click", e => {
   const t = e.target.closest("button, a, .velo"); if (!t) return;
   if (t.dataset.cat !== undefined){ E.categoria = t.dataset.cat; pintarChips(); pintarGrilla(); return; }
   if (t.dataset.abrir){ abrirProducto(t.dataset.abrir); return; }
+  if (t.dataset.foto !== undefined){ pintarGaleria(+t.dataset.foto); return; }
+  if (t.id === "fotoAnt"){ pintarGaleria(fotoActual - 1); return; }
+  if (t.id === "fotoSig"){ pintarGaleria(fotoActual + 1); return; }
   if (t.dataset.color !== undefined){
     const s = E.sel, v = variantes(E.abierto); s.color = t.dataset.color;
+    const fc = fotosDeColor(E.abierto, s.color); if (fc.length && !fc.includes(fotoActual)) pintarGaleria(fc[0]);
     if (s.talla && !(stock(E.abierto.id, s.color, s.talla) > 0)) s.talla = null;
     const tallasColor = v.tallas.filter(x => stock(E.abierto.id, s.color, x) > 0);
     if (!s.talla && tallasColor.length === 1) s.talla = tallasColor[0];
@@ -844,6 +908,17 @@ document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if ($("#ventana").classList.contains("abierta")) cerrarProducto();
   else if ($("#carrito").classList.contains("abierto")) cerrarCarrito();
+});
+let toqueX = null;
+$("#galeria").addEventListener("pointerdown", e => { toqueX = e.clientX; });
+$("#galeria").addEventListener("pointerup", e => {
+  if (toqueX === null) return; const dx = e.clientX - toqueX; toqueX = null;
+  if (Math.abs(dx) > 40 && E.abierto && (E.abierto.fotos || []).length > 1) pintarGaleria(fotoActual + (dx < 0 ? 1 : -1));
+});
+document.addEventListener("keydown", e => {
+  if (!$("#ventana").classList.contains("abierta") || !E.abierto) return;
+  if (e.key === "ArrowRight") pintarGaleria(fotoActual + 1);
+  if (e.key === "ArrowLeft") pintarGaleria(fotoActual - 1);
 });
 let tBusca;
 $("#buscar").addEventListener("input", e => { clearTimeout(tBusca); tBusca = setTimeout(() => { E.busqueda = e.target.value; pintarGrilla(); }, 180); });
@@ -884,6 +959,7 @@ async function refrescar(){
         if (s.color && s.talla && !(stock(p.id, s.color, s.talla) > 0)) s.talla = null;
         $("#vPrecio").innerHTML = precio(p.precio) + (p.antes && p.antes > p.precio ? ` <s>${precio(p.antes)}</s>` : "");
         $("#vNombre").textContent = p.producto; $("#vDesc").textContent = p.descripcion || "";
+        $("#vMinis").dataset.id = ""; pintarGaleria(fotoActual, true);
         pintarOpciones();
       }
     }
